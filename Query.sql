@@ -233,3 +233,16 @@ CREATE TABLE RESULTATS_SESSION_FORMATION (
     CONSTRAINT PK_RESULTATS_SESS_FORM
         PRIMARY KEY (id_resultat)
 );
+
+-- ============================================================= --
+-- ⚡ PERFORMANCE INDEXES
+--
+-- Create FK indexes to avoid table-level locking during parent
+-- updates and to optimize JOIN performance on read queries.
+-- ============================================================= --
+
+CREATE INDEX IDX_SORTIES_SITE ON SORTIES_PLONGEE(id_site);
+CREATE INDEX IDX_SORTIES_BATEAU ON SORTIES_PLONGEE(id_bateau);
+CREATE INDEX IDX_SORTIES_DIR ON SORTIES_PLONGEE(numero_licence_directeur);
+CREATE INDEX IDX_SORTIES_PILOTE ON SORTIES_PLONGEE(numero_licence_pilote);
+CREATE INDEX IDX_SORTIES_SEC ON SORTIES_PLONGEE(numero_licence_securite);
