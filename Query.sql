@@ -2,19 +2,20 @@
 -- 💣 CLEANUP (REVERSE DEPENDENCY ORDER)
 -- ============================================================= --
 
--- Level 3: Tables with FKs to Level 2 or 1
 DROP TABLE RESULTATS_SESSION_FORMATION;
+
+-- Level 3: Tables with FKs to Level 2 or 1
 DROP TABLE SESSION_FORMATION;
 DROP TABLE COMPETENCES;
+DROP TABLE PALANQUEES;
 
 -- Level 2: Tables with FKs to Level 1
+DROP TABLE SORTIES_PLONGEE;
 DROP TABLE CATEGORIES_COMPETENCES;
 
 -- Level 1: Independent / Parent Tables
 DROP TABLE CERTIFICATIONS;
 DROP TABLE MEMBRES;
-DROP TABLE SORTIES_PLONGEE;
-DROP TABLE PALANQUEES;
 DROP TABLE BATEAUX;
 DROP TABLE SITES_PLONGEE;
 DROP TABLE MATERIEL;
@@ -25,7 +26,7 @@ DROP TABLE REGLES_TARIFICATIONS;
 -- ============================================================= --
 
 CREATE TABLE MEMBRES (
-    numero_license INTEGER,
+    numero_licence INTEGER,
     nom VARCHAR2(100) NOT NULL,
     prenom VARCHAR2(100) NOT NULL,
     date_naissance DATE,
@@ -38,7 +39,7 @@ CREATE TABLE MEMBRES (
     url_photo VARCHAR2(500),
 
     CONSTRAINT PK_MEMBRES
-        PRIMARY KEY (numero_license),
+        PRIMARY KEY (numero_licence),
 
     CONSTRAINT CK_MEMBRES_GRP_SANGUIN
         CHECK (groupe_sanguin IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'))
@@ -58,16 +59,12 @@ CREATE TABLE REGLES_TARIFICATIONS (
 
     CONSTRAINT CK_TARIF_EST_ETUDIANT
         CHECK (est_etudiant IN (0, 1)),
-
     CONSTRAINT CK_TARIF_EST_AIDANT
         CHECK (est_aidant_accompagnant IN (0, 1)),
-
     CONSTRAINT CK_TARIF_CAT_AGE
         CHECK (categorie_age IN ('moins_12_ans', 'moins_16_ans', 'adulte')),
-
     CONSTRAINT CK_TARIF_TYPE_FRAIS
         CHECK (type_frais IN ('licence', 'cotisation', 'plongee', 'formation')),
-
     CONSTRAINT CK_TARIF_TYPE_ACCUEIL
         CHECK (type_accueil IN ('adherent', 'federal'))
 );
@@ -77,7 +74,7 @@ CREATE TABLE MATERIEL (
     type_materiel VARCHAR2(100),
     marque VARCHAR2(100),
     modele VARCHAR2(100),
-    taille VARCHAR2(2),
+    taille VARCHAR2(5),
     date_achat DATE,
     date_derniere_revision DATE,
 
@@ -107,11 +104,38 @@ CREATE TABLE SITES_PLONGEE (
 );
 
 CREATE TABLE BATEAUX (
+    id_bateau INTEGER,
     nom_bateau VARCHAR2(100),
     capacite_places INTEGER NOT NULL,
 
     CONSTRAINT PK_BATEAUX
-        PRIMARY KEY (nom_bateau)
+        PRIMARY KEY (id_bateau)
+);
+
+CREATE TABLE SORTIES_PLONGEE (
+    id_sortie INTEGER,
+    date_heure_debut DATE,
+
+    id_site INTEGER,
+    id_bateau INTEGER,
+
+    numero_licence_directeur INTEGER,
+    numero_licence_pilote INTEGER,
+    numero_licence_securite INTEGER,
+
+    CONSTRAINT PK_SORTIES_PLONGEE
+        PRIMARY KEY (id_sortie),
+
+    CONSTRAINT FK_SORTIES_SITE
+        FOREIGN KEY (id_site) REFERENCES SITES_PLONGEE (id_site),
+    CONSTRAINT FK_SORTIES_BATEAU
+        FOREIGN KEY (id_bateau) REFERENCES BATEAUX (id_bateau),
+    CONSTRAINT FK_SORTIES_DIRECTEUR
+        FOREIGN KEY (numero_licence_directeur) REFERENCES MEMBRES (numero_licence),
+    CONSTRAINT FK_SORTIES_PILOTE
+        FOREIGN KEY (numero_licence_pilote) REFERENCES MEMBRES (numero_licence),
+    CONSTRAINT FK_SORTIES_SECURITE
+        FOREIGN KEY (numero_licence_securite) REFERENCES MEMBRES (numero_licence)
 );
 
 CREATE TABLE PALANQUEES (
@@ -131,44 +155,12 @@ CREATE TABLE PALANQUEES (
 
     CONSTRAINT FK_PALANQUEES_SORTIE
         FOREIGN KEY (id_sortie) REFERENCES SORTIES_PLONGEE (id_sortie),
-
     CONSTRAINT FK_PALANQUEES_ENCADRANT
-        FOREIGN KEY (numero_licence_encadrant) REFERENCES MEMBRES (numero_license)
-);
-
-CREATE TABLE SORTIES_PLONGEE (
-    id_sortie INTEGER,
-    date_sortie DATE,
-    heure_debut TIMESTAMP,
-
-    id_site INTEGER,
-    nom_bateau VARCHAR2(100),
-
-    numero_licence_directeur INTEGER,
-    numero_licence_pilote INTEGER,
-    numero_licence_securite INTEGER,
-
-    CONSTRAINT PK_SORTIES_PLONGEE
-        PRIMARY KEY (id_sortie),
-
-    CONSTRAINT FK_SORTIES_SITE
-        FOREIGN KEY (id_site) REFERENCES SITES_PLONGEE (id_site),
-
-    CONSTRAINT FK_SORTIES_BATEAU
-        FOREIGN KEY (nom_bateau) REFERENCES BATEAUX (nom_bateau),
-
-    CONSTRAINT FK_SORTIES_DIRECTEUR
-        FOREIGN KEY (numero_licence_directeur) REFERENCES MEMBRES (numero_license),
-
-    CONSTRAINT FK_SORTIES_PILOTE
-        FOREIGN KEY (numero_licence_pilote) REFERENCES MEMBRES (numero_license),
-
-    CONSTRAINT FK_SORTIES_SECURITE
-        FOREIGN KEY (numero_licence_securite) REFERENCES MEMBRES (numero_license)
+        FOREIGN KEY (numero_licence_encadrant) REFERENCES MEMBRES (numero_licence)
 );
 
 CREATE TABLE CERTIFICATIONS (
-    code_certification VARCHAR2(2),
+    code_certification VARCHAR2(10),
     type_certification VARCHAR2(20),
     profondeur_max_autonome INTEGER,
     profondeur_max_plongee INTEGER,
@@ -207,7 +199,6 @@ CREATE TABLE COMPETENCES (
 
     CONSTRAINT FK_COMPETENCES_CATEGORIE
         FOREIGN KEY (id_categorie) REFERENCES CATEGORIES_COMPETENCES(id_categorie),
-
     CONSTRAINT FK_COMPETENCES_PARENT
         FOREIGN KEY (id_competence_parent) REFERENCES COMPETENCES(id_competence),
 
@@ -229,12 +220,10 @@ CREATE TABLE SESSION_FORMATION (
 
     CONSTRAINT FK_SESS_FORM_ID_PALANQ
         FOREIGN KEY (id_palanquee) REFERENCES PALANQUEES(id_palanquee),
-
     CONSTRAINT FK_SESS_FORM_CODE_CERT
         FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS(code_certification),
-
     CONSTRAINT FK_SESS_FORM_INSTRUC
-        FOREIGN KEY (numero_licence_instructeur) REFERENCES MEMBRES(numero_license)
+        FOREIGN KEY (numero_licence_instructeur) REFERENCES MEMBRES(numero_licence)
 );
 
 CREATE TABLE RESULTATS_SESSION_FORMATION (
