@@ -2,6 +2,7 @@
 -- 💣 CLEANUP (REVERSE DEPENDENCY ORDER)
 -- ============================================================= --
 
+-- Level 4: Disconnected tables
 DROP TABLE RESULTATS_SESSION_FORMATION;
 
 -- Level 3: Tables with FKs to Level 2 or 1
@@ -74,7 +75,7 @@ CREATE TABLE MATERIEL (
     type_materiel VARCHAR2(100),
     marque VARCHAR2(100),
     modele VARCHAR2(100),
-    taille VARCHAR2(5),
+    taille VARCHAR2(3),
     date_achat DATE,
     date_derniere_revision DATE,
 
@@ -82,7 +83,7 @@ CREATE TABLE MATERIEL (
         PRIMARY KEY (numero_inventaire),
 
     CONSTRAINT CK_MATERIEL_TAILLE
-        CHECK (taille IN ('XS', 'S', 'M', 'L', 'XL'))
+        CHECK (taille IN ('2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL'))
 );
 
 CREATE TABLE SITES_PLONGEE (
@@ -177,7 +178,7 @@ CREATE TABLE CATEGORIES_COMPETENCES (
     id_categorie INTEGER,
     nom_categorie VARCHAR2(100),
 
-    code_certification VARCHAR2(2),
+    code_certification VARCHAR2(10),
 
     CONSTRAINT PK_CATEGORIES_COMPETENCES
         PRIMARY KEY (id_categorie),
@@ -212,7 +213,7 @@ CREATE TABLE SESSION_FORMATION (
     profondeur_metres INTEGER,
 
     id_palanquee INTEGER,
-    code_certification VARCHAR2(2),
+    code_certification VARCHAR2(10),
     numero_licence_instructeur INTEGER,
 
     CONSTRAINT PK_SESSION_FORMATION
