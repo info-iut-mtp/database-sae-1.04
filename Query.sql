@@ -120,11 +120,20 @@ CREATE TABLE PALANQUEES (
     profondeur_max_metres INTEGER,
     duree_plongee_minutes INTEGER,
 
+    id_sortie INTEGER,
+    numero_licence_encadrant INTEGER,
+
     CONSTRAINT PK_PALANQUEES
         PRIMARY KEY (id_palanquee),
 
     CONSTRAINT CK_PALANQUEES_TYPE_GRP
-        CHECK (type_groupe IN ('autonome', 'encadrée', 'enseignement'))
+        CHECK (type_groupe IN ('autonome', 'encadrée', 'enseignement')),
+
+    CONSTRAINT FK_PALANQUEES_SORTIE
+        FOREIGN KEY (id_sortie) REFERENCES SORTIES_PLONGEE (id_sortie),
+
+    CONSTRAINT FK_PALANQUEES_ENCADRANT
+        FOREIGN KEY (numero_licence_encadrant) REFERENCES MEMBRES (numero_license)
 );
 
 CREATE TABLE SORTIES_PLONGEE (
@@ -132,8 +141,30 @@ CREATE TABLE SORTIES_PLONGEE (
     date_sortie DATE,
     heure_debut TIMESTAMP,
 
+    id_site INTEGER,
+    nom_bateau VARCHAR2(100),
+
+    numero_licence_directeur INTEGER,
+    numero_licence_pilote INTEGER,
+    numero_licence_securite INTEGER,
+
     CONSTRAINT PK_SORTIES_PLONGEE
-        PRIMARY KEY (id_sortie)
+        PRIMARY KEY (id_sortie),
+
+    CONSTRAINT FK_SORTIES_SITE
+        FOREIGN KEY (id_site) REFERENCES SITES_PLONGEE (id_site),
+
+    CONSTRAINT FK_SORTIES_BATEAU
+        FOREIGN KEY (nom_bateau) REFERENCES BATEAUX (nom_bateau),
+
+    CONSTRAINT FK_SORTIES_DIRECTEUR
+        FOREIGN KEY (numero_licence_directeur) REFERENCES MEMBRES (numero_license),
+
+    CONSTRAINT FK_SORTIES_PILOTE
+        FOREIGN KEY (numero_licence_pilote) REFERENCES MEMBRES (numero_license),
+
+    CONSTRAINT FK_SORTIES_SECURITE
+        FOREIGN KEY (numero_licence_securite) REFERENCES MEMBRES (numero_license)
 );
 
 CREATE TABLE CERTIFICATIONS (
@@ -153,6 +184,7 @@ CREATE TABLE CERTIFICATIONS (
 CREATE TABLE CATEGORIES_COMPETENCES (
     id_categorie INTEGER,
     nom_categorie VARCHAR2(100),
+
     code_certification VARCHAR2(2),
 
     CONSTRAINT PK_CATEGORIES_COMPETENCES
@@ -166,6 +198,7 @@ CREATE TABLE COMPETENCES (
     id_competence INTEGER,
     nom_competence VARCHAR(100) NOT NULL,
     est_obligatoire NUMBER(1) DEFAULT 0 NOT NULL,
+
     id_categorie INTEGER,
     id_competence_parent INTEGER,
 
@@ -186,11 +219,16 @@ CREATE TABLE SESSION_FORMATION (
     id_session INTEGER,
     date_session DATE,
     profondeur_metres INTEGER,
+
+    id_palanquee INTEGER,
     code_certification VARCHAR2(2),
     numero_licence_instructeur INTEGER,
 
     CONSTRAINT PK_SESSION_FORMATION
         PRIMARY KEY (id_session),
+
+    CONSTRAINT FK_SESS_FORM_ID_PALANQ
+        FOREIGN KEY (id_palanquee) REFERENCES PALANQUEES(id_palanquee),
 
     CONSTRAINT FK_SESS_FORM_CODE_CERT
         FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS(code_certification),
