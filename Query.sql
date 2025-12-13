@@ -1,25 +1,30 @@
 -- ============================================================= --
--- 💣 CLEANUP
+-- 💣 CLEANUP (REVERSE DEPENDENCY ORDER)
 -- ============================================================= --
 
-DROP TABLE resultats_session_formation;
-DROP TABLE session_formation;
-DROP TABLE competences;
-DROP TABLE categories_competences;
-DROP TABLE certifications;
-DROP TABLE sorties_plongee;
-DROP TABLE palanquees;
-DROP TABLE bateaux;
-DROP TABLE sites_plongee;
-DROP TABLE materiel;
-DROP TABLE regles_tarifications;
-DROP TABLE membres;
+-- Level 3: Tables with FKs to Level 2 or 1
+DROP TABLE RESULTATS_SESSION_FORMATION;
+DROP TABLE SESSION_FORMATION;
+DROP TABLE COMPETENCES;
+
+-- Level 2: Tables with FKs to Level 1
+DROP TABLE CATEGORIES_COMPETENCES;
+
+-- Level 1: Independent / Parent Tables
+DROP TABLE CERTIFICATIONS;
+DROP TABLE MEMBRES;
+DROP TABLE SORTIES_PLONGEE;
+DROP TABLE PALANQUEES;
+DROP TABLE BATEAUX;
+DROP TABLE SITES_PLONGEE;
+DROP TABLE MATERIEL;
+DROP TABLE REGLES_TARIFICATIONS;
 
 -- ============================================================= --
--- 🏗️ SCHEMA SETUP (ENTITIES)
+-- 🏗️ SCHEMA SETUP
 -- ============================================================= --
 
-CREATE TABLE membres (
+CREATE TABLE MEMBRES (
     numero_license INTEGER,
     nom VARCHAR2(100) NOT NULL,
     prenom VARCHAR2(100) NOT NULL,
@@ -32,14 +37,14 @@ CREATE TABLE membres (
     date_certificat_medical DATE,
     url_photo VARCHAR2(500),
 
-    CONSTRAINT pk_membres PRIMARY KEY (numero_license),
+    CONSTRAINT PK_MEMBRES
+        PRIMARY KEY (numero_license),
 
-    CONSTRAINT ck_enum_groupe_sanguin CHECK (groupe_sanguin IN (
-        'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
-    ))
+    CONSTRAINT CK_MEMBRES_GRP_SANGUIN
+        CHECK (groupe_sanguin IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'))
 );
 
-CREATE TABLE regles_tarifications (
+CREATE TABLE REGLES_TARIFICATIONS (
     id_regle INTEGER,
     type_frais VARCHAR(20),
     categorie_age VARCHAR2(20),
@@ -48,17 +53,26 @@ CREATE TABLE regles_tarifications (
     type_accueil VARCHAR(20),
     montant_euros NUMBER(10, 2),
 
-    CONSTRAINT pk_regles_tarifications PRIMARY KEY (id_regle),
+    CONSTRAINT PK_REGLES_TARIFICATIONS
+        PRIMARY KEY (id_regle),
 
-    CONSTRAINT ck_bool_est_etudiant CHECK (est_etudiant IN (0, 1)),
-    CONSTRAINT ck_bool_est_aidant CHECK (est_aidant_accompagnant IN (0, 1)),
+    CONSTRAINT CK_TARIF_EST_ETUDIANT
+        CHECK (est_etudiant IN (0, 1)),
 
-    CONSTRAINT ck_enum_categorie_age CHECK (categorie_age IN ('moins_12_ans, moins_16_ans, adulte')),
-    CONSTRAINT ck_enum_type_frais CHECK (type_frais IN ('licence', 'cotisation', 'plongee', 'formation')),
-    CONSTRAINT ck_enum_type_accueil CHECK (type_accueil IN ('adherent', 'federal'))
+    CONSTRAINT CK_TARIF_EST_AIDANT
+        CHECK (est_aidant_accompagnant IN (0, 1)),
+
+    CONSTRAINT CK_TARIF_CAT_AGE
+        CHECK (categorie_age IN ('moins_12_ans', 'moins_16_ans', 'adulte')),
+
+    CONSTRAINT CK_TARIF_TYPE_FRAIS
+        CHECK (type_frais IN ('licence', 'cotisation', 'plongee', 'formation')),
+
+    CONSTRAINT CK_TARIF_TYPE_ACCUEIL
+        CHECK (type_accueil IN ('adherent', 'federal'))
 );
 
-CREATE TABLE materiel (
+CREATE TABLE MATERIEL (
     numero_inventaire INTEGER,
     type_materiel VARCHAR2(100),
     marque VARCHAR2(100),
@@ -67,12 +81,14 @@ CREATE TABLE materiel (
     date_achat DATE,
     date_derniere_revision DATE,
 
-    CONSTRAINT pk_materiel PRIMARY KEY (numero_inventaire),
+    CONSTRAINT PK_MATERIEL
+        PRIMARY KEY (numero_inventaire),
 
-    CONSTRAINT ck_enum_taille CHECK (taille IN ('XS', 'S', 'M', 'L', 'XL'))
+    CONSTRAINT CK_MATERIEL_TAILLE
+        CHECK (taille IN ('XS', 'S', 'M', 'L', 'XL'))
 );
 
-CREATE TABLE sites_plongee (
+CREATE TABLE SITES_PLONGEE (
     id_site INTEGER,
     nom_site VARCHAR2(100),
     milieu VARCHAR2(20),
@@ -83,84 +99,110 @@ CREATE TABLE sites_plongee (
     url_photo VARCHAR2(500),
     url_plan_site VARCHAR2(500),
 
-    CONSTRAINT pk_site_plongee PRIMARY KEY (id_site),
+    CONSTRAINT PK_SITES_PLONGEE
+        PRIMARY KEY (id_site),
 
-    CONSTRAINT ck_enum_milieu CHECK (milieu IN ('artificiel', 'naturel'))
+    CONSTRAINT CK_SITES_MILIEU
+        CHECK (milieu IN ('artificiel', 'naturel'))
 );
 
-CREATE TABLE bateaux (
+CREATE TABLE BATEAUX (
     nom_bateau VARCHAR2(100),
     capacite_places INTEGER NOT NULL,
 
-    CONSTRAINT pk_bateaux PRIMARY KEY (nom_bateau)
+    CONSTRAINT PK_BATEAUX
+        PRIMARY KEY (nom_bateau)
 );
 
-CREATE TABLE palanquees (
+CREATE TABLE PALANQUEES (
     id_palanquee INTEGER,
     type_groupe VARCHAR2(20),
     profondeur_max_metres INTEGER,
     duree_plongee_minutes INTEGER,
 
-    CONSTRAINT pk_palanquees PRIMARY KEY (id_palanquee),
+    CONSTRAINT PK_PALANQUEES
+        PRIMARY KEY (id_palanquee),
 
-    CONSTRAINT ck_enum_type_groupe CHECK (type_groupe IN ('autonome, encadrée, enseignement'))
+    CONSTRAINT CK_PALANQUEES_TYPE_GRP
+        CHECK (type_groupe IN ('autonome', 'encadrée', 'enseignement'))
 );
 
-CREATE TABLE sorties_plongee (
+CREATE TABLE SORTIES_PLONGEE (
     id_sortie INTEGER,
     date_sortie DATE,
     heure_debut TIMESTAMP,
 
-    CONSTRAINT pk_sorties_plongee PRIMARY KEY (id_sortie)
+    CONSTRAINT PK_SORTIES_PLONGEE
+        PRIMARY KEY (id_sortie)
 );
 
-CREATE TABLE certifications (
+CREATE TABLE CERTIFICATIONS (
     code_certification VARCHAR2(2),
     type_certification VARCHAR2(20),
     profondeur_max_autonome INTEGER,
     profondeur_max_plongee INTEGER,
     profondeur_max_encadrement INTEGER,
 
-    CONSTRAINT pk_certifications PRIMARY KEY (code_certification),
+    CONSTRAINT PK_CERTIFICATIONS
+        PRIMARY KEY (code_certification),
 
-    CONSTRAINT ck_enum_type_certification CHECK (type_certification IN ('plongee', 'encadrement'))
+    CONSTRAINT CK_CERTIF_TYPE
+        CHECK (type_certification IN ('plongee', 'encadrement'))
 );
 
-CREATE TABLE categories_competences (
+CREATE TABLE CATEGORIES_COMPETENCES (
     id_categorie INTEGER,
     nom_categorie VARCHAR2(100),
+    code_certification VARCHAR2(2),
 
-    CONSTRAINT pk_categories_competences PRIMARY KEY (id_categorie)
+    CONSTRAINT PK_CATEGORIES_COMPETENCES
+        PRIMARY KEY (id_categorie),
+
+    CONSTRAINT FK_CAT_COMP_CODE_CERT
+        FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS(code_certification)
 );
 
-CREATE TABLE competences (
+CREATE TABLE COMPETENCES (
     id_competence INTEGER,
     nom_competence VARCHAR(100) NOT NULL,
     est_obligatoire NUMBER(1) DEFAULT 0 NOT NULL,
-
     id_categorie INTEGER,
     id_competence_parent INTEGER,
 
-    CONSTRAINT pk_competences PRIMARY KEY (id_competence),
+    CONSTRAINT PK_COMPETENCES
+        PRIMARY KEY (id_competence),
 
-    CONSTRAINT ck_bool_est_obligatoire CHECK (est_obligatoire IN (0, 1))
+    CONSTRAINT FK_COMPETENCES_CATEGORIE
+        FOREIGN KEY (id_categorie) REFERENCES CATEGORIES_COMPETENCES(id_categorie),
+
+    CONSTRAINT FK_COMPETENCES_PARENT
+        FOREIGN KEY (id_competence_parent) REFERENCES COMPETENCES(id_competence),
+
+    CONSTRAINT CK_COMPETENCES_OBLIGATOIRE
+        CHECK (est_obligatoire IN (0, 1))
 );
 
-CREATE TABLE session_formation (
+CREATE TABLE SESSION_FORMATION (
     id_session INTEGER,
     date_session DATE,
     profondeur_metres INTEGER,
+    code_certification VARCHAR2(2),
+    numero_licence_instructeur INTEGER,
 
-    CONSTRAINT pk_session_formation PRIMARY KEY (id_session)
+    CONSTRAINT PK_SESSION_FORMATION
+        PRIMARY KEY (id_session),
+
+    CONSTRAINT FK_SESS_FORM_CODE_CERT
+        FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS(code_certification),
+
+    CONSTRAINT FK_SESS_FORM_INSTRUC
+        FOREIGN KEY (numero_licence_instructeur) REFERENCES MEMBRES(numero_license)
 );
 
-CREATE TABLE resultats_session_formation (
+CREATE TABLE RESULTATS_SESSION_FORMATION (
     id_resultat INTEGER NOT NULL,
     commentaires VARCHAR2(500),
 
-    CONSTRAINT pk_resultats_session_formation PRIMARY KEY (id_resultat)
+    CONSTRAINT PK_RESULTATS_SESS_FORM
+        PRIMARY KEY (id_resultat)
 );
-
--- ============================================================= --
--- 🏗️ SCHEMA SETUP (ASSOCIATIONS)
--- ============================================================= --
