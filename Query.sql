@@ -30,7 +30,7 @@ CREATE TABLE MEMBRES (
     numero_licence INTEGER,
     nom VARCHAR2(100) NOT NULL,
     prenom VARCHAR2(100) NOT NULL,
-    date_naissance DATE,
+    date_naissance DATE NOT NULL,
     adresse VARCHAR2(255),
     telephone VARCHAR2(20),
     email VARCHAR2(150),
@@ -48,12 +48,12 @@ CREATE TABLE MEMBRES (
 
 CREATE TABLE REGLES_TARIFICATIONS (
     id_regle INTEGER,
-    type_frais VARCHAR(20),
-    categorie_age VARCHAR2(20),
+    type_frais VARCHAR(20) NOT NULL,
+    categorie_age VARCHAR2(20) NOT NULL,
     est_etudiant NUMBER(1) DEFAULT 0 NOT NULL,
     est_aidant_accompagnant NUMBER(1) DEFAULT 0 NOT NULL,
-    type_accueil VARCHAR(20),
-    montant_euros NUMBER(10, 2),
+    type_accueil VARCHAR(20) NOT NULL,
+    montant_euros NUMBER(10, 2) NOT NULL,
 
     CONSTRAINT PK_REGLES_TARIFICATIONS
         PRIMARY KEY (id_regle),
@@ -72,9 +72,9 @@ CREATE TABLE REGLES_TARIFICATIONS (
 
 CREATE TABLE MATERIEL (
     numero_inventaire INTEGER,
-    type_materiel VARCHAR2(100),
-    marque VARCHAR2(100),
-    modele VARCHAR2(100),
+    type_materiel VARCHAR2(100) NOT NULL,
+    marque VARCHAR2(100) NOT NULL,
+    modele VARCHAR2(100) NOT NULL,
     taille VARCHAR2(3),
     date_achat DATE,
     date_derniere_revision DATE,
@@ -88,11 +88,11 @@ CREATE TABLE MATERIEL (
 
 CREATE TABLE SITES_PLONGEE (
     id_site INTEGER,
-    nom_site VARCHAR2(100),
-    milieu VARCHAR2(20),
-    latitude NUMBER(10,8),
-    longitude NUMBER(11,8),
-    profondeur_max_metres INTEGER,
+    nom_site VARCHAR2(100) NOT NULL,
+    milieu VARCHAR2(20) NOT NULL,
+    latitude NUMBER(10,8) NOT NULL,
+    longitude NUMBER(11,8) NOT NULL,
+    profondeur_max_metres INTEGER NOT NULL,
     description VARCHAR2(4000),
     url_photo VARCHAR2(500),
     url_plan_site VARCHAR2(500),
@@ -106,7 +106,7 @@ CREATE TABLE SITES_PLONGEE (
 
 CREATE TABLE BATEAUX (
     id_bateau INTEGER,
-    nom_bateau VARCHAR2(100),
+    nom_bateau VARCHAR2(100) NOT NULL,
     capacite_places INTEGER NOT NULL,
 
     CONSTRAINT PK_BATEAUX
@@ -115,12 +115,12 @@ CREATE TABLE BATEAUX (
 
 CREATE TABLE SORTIES_PLONGEE (
     id_sortie INTEGER,
-    date_heure_debut DATE,
+    date_heure_debut DATE NOT NULL,
 
-    id_site INTEGER,
+    id_site INTEGER NOT NULL,
     id_bateau INTEGER,
 
-    numero_licence_directeur INTEGER,
+    numero_licence_directeur INTEGER NOT NULL,
     numero_licence_pilote INTEGER,
     numero_licence_securite INTEGER,
 
@@ -136,36 +136,54 @@ CREATE TABLE SORTIES_PLONGEE (
     CONSTRAINT FK_SORTIES_PILOTE
         FOREIGN KEY (numero_licence_pilote) REFERENCES MEMBRES (numero_licence),
     CONSTRAINT FK_SORTIES_SECURITE
-        FOREIGN KEY (numero_licence_securite) REFERENCES MEMBRES (numero_licence)
+        FOREIGN KEY (numero_licence_securite) REFERENCES MEMBRES (numero_licence),
+
+    -- Enforce that if a boat is used, a pilot is required.
+    -- Conversely, if no boat is used, no pilot should be listed.
+    CONSTRAINT CK_SORTIES_COHERENCE_PILOTE
+        CHECK (
+            (id_bateau IS NULL AND numero_licence_pilote IS NULL)
+            OR
+            (id_bateau IS NOT NULL AND numero_licence_pilote IS NOT NULL)
+        )
 );
 
 CREATE TABLE PALANQUEES (
     id_palanquee INTEGER,
-    type_groupe VARCHAR2(20),
-    profondeur_max_metres INTEGER,
-    duree_plongee_minutes INTEGER,
+    type_groupe VARCHAR2(20) NOT NULL,
+    profondeur_max_metres INTEGER NOT NULL,
+    duree_plongee_minutes INTEGER NOT NULL,
 
-    id_sortie INTEGER,
+    id_sortie INTEGER NOT NULL,
     numero_licence_encadrant INTEGER,
 
     CONSTRAINT PK_PALANQUEES
         PRIMARY KEY (id_palanquee),
 
-    CONSTRAINT CK_PALANQUEES_TYPE_GRP
-        CHECK (type_groupe IN ('autonome', 'encadrée', 'enseignement')),
-
     CONSTRAINT FK_PALANQUEES_SORTIE
         FOREIGN KEY (id_sortie) REFERENCES SORTIES_PLONGEE (id_sortie),
     CONSTRAINT FK_PALANQUEES_ENCADRANT
-        FOREIGN KEY (numero_licence_encadrant) REFERENCES MEMBRES (numero_licence)
+        FOREIGN KEY (numero_licence_encadrant) REFERENCES MEMBRES (numero_licence),
+
+    CONSTRAINT CK_PALANQUEES_TYPE_GRP
+        CHECK (type_groupe IN ('autonome', 'encadrée', 'enseignement')),
+
+    -- Enforce that if the group is autonomous, they cannot have a guide.
+    -- Conversely, if the group is guided or in training, a guide is required.
+    CONSTRAINT CK_PALANQUEES_COHERENCE_ENCADRANT
+        CHECK (
+            (type_groupe = 'autonome' AND numero_licence_encadrant IS NULL)
+            OR
+            (type_groupe IN ('encadrée', 'enseignement') AND numero_licence_encadrant IS NOT NULL)
+        )
 );
 
 CREATE TABLE CERTIFICATIONS (
     code_certification VARCHAR2(10),
-    type_certification VARCHAR2(20),
-    profondeur_max_autonome INTEGER,
-    profondeur_max_plongee INTEGER,
-    profondeur_max_encadrement INTEGER,
+    type_certification VARCHAR2(20) NOT NULL,
+    profondeur_max_autonome INTEGER NOT NULL,
+    profondeur_max_plongee INTEGER NOT NULL,
+    profondeur_max_encadrement INTEGER NOT NULL,
 
     CONSTRAINT PK_CERTIFICATIONS
         PRIMARY KEY (code_certification),
@@ -176,9 +194,9 @@ CREATE TABLE CERTIFICATIONS (
 
 CREATE TABLE CATEGORIES_COMPETENCES (
     id_categorie INTEGER,
-    nom_categorie VARCHAR2(100),
+    nom_categorie VARCHAR2(100) NOT NULL,
 
-    code_certification VARCHAR2(10),
+    code_certification VARCHAR2(10) NOT NULL,
 
     CONSTRAINT PK_CATEGORIES_COMPETENCES
         PRIMARY KEY (id_categorie),
@@ -192,7 +210,7 @@ CREATE TABLE COMPETENCES (
     nom_competence VARCHAR(100) NOT NULL,
     est_obligatoire NUMBER(1) DEFAULT 0 NOT NULL,
 
-    id_categorie INTEGER,
+    id_categorie INTEGER NOT NULL,
     id_competence_parent INTEGER,
 
     CONSTRAINT PK_COMPETENCES
@@ -209,12 +227,12 @@ CREATE TABLE COMPETENCES (
 
 CREATE TABLE SESSION_FORMATION (
     id_session INTEGER,
-    date_session DATE,
-    profondeur_metres INTEGER,
+    date_session DATE NOT NULL,
+    profondeur_metres INTEGER NOT NULL,
 
-    id_palanquee INTEGER,
-    code_certification VARCHAR2(10),
-    numero_licence_instructeur INTEGER,
+    id_palanquee INTEGER NOT NULL,
+    code_certification VARCHAR2(10) NOT NULL,
+    numero_licence_instructeur INTEGER NOT NULL,
 
     CONSTRAINT PK_SESSION_FORMATION
         PRIMARY KEY (id_session),
@@ -228,7 +246,7 @@ CREATE TABLE SESSION_FORMATION (
 );
 
 CREATE TABLE RESULTATS_SESSION_FORMATION (
-    id_resultat INTEGER NOT NULL,
+    id_resultat INTEGER,
     commentaires VARCHAR2(500),
 
     CONSTRAINT PK_RESULTATS_SESS_FORM
