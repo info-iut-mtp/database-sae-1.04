@@ -138,9 +138,7 @@ CREATE TABLE SORTIES_PLONGEE (
     CONSTRAINT FK_SORTIES_SECURITE
         FOREIGN KEY (numero_licence_securite) REFERENCES MEMBRES (numero_licence),
 
-    -- Enforce that if a boat is used, a pilot is required.
-    -- Conversely, if no boat is used, no pilot should be listed.
-    CONSTRAINT CK_SORTIES_COHERENCE_PILOTE
+    CONSTRAINT CK_SORTIES_COHERENCE_PILOT
         CHECK (
             (id_bateau IS NULL AND numero_licence_pilote IS NULL)
             OR
@@ -168,9 +166,7 @@ CREATE TABLE PALANQUEES (
     CONSTRAINT CK_PALANQUEES_TYPE_GRP
         CHECK (type_groupe IN ('autonome', 'encadrée', 'enseignement')),
 
-    -- Enforce that if the group is autonomous, they cannot have a guide.
-    -- Conversely, if the group is guided or in training, a guide is required.
-    CONSTRAINT CK_PALANQUEES_COHERENCE_ENCADRANT
+    CONSTRAINT CK_PALANQ_COHERENCE_ENCAD
         CHECK (
             (type_groupe = 'autonome' AND numero_licence_encadrant IS NULL)
             OR
@@ -255,9 +251,6 @@ CREATE TABLE RESULTATS_SESSION_FORMATION (
 
 -- ============================================================= --
 -- ⚡ PERFORMANCE INDEXES
---
--- Create FK indexes to avoid table-level locking during parent
--- updates and to optimize JOIN performance on read queries.
 -- ============================================================= --
 
 CREATE INDEX IDX_SORTIES_SITE ON SORTIES_PLONGEE(id_site);
@@ -267,7 +260,7 @@ CREATE INDEX IDX_SORTIES_PILOTE ON SORTIES_PLONGEE(numero_licence_pilote);
 CREATE INDEX IDX_SORTIES_SEC ON SORTIES_PLONGEE(numero_licence_securite);
 
 CREATE INDEX IDX_PALANQUEES_SORTIE ON PALANQUEES(id_sortie);
-CREATE INDEX IDX_PALANQUEES_ENCADRANT ON PALANQUEES(numero_licence_encadrant);
+CREATE INDEX IDX_PALANQ_ENCADRANT ON PALANQUEES(numero_licence_encadrant);
 
 CREATE INDEX IDX_CAT_COMP_CERTIF ON CATEGORIES_COMPETENCES(code_certification);
 
