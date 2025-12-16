@@ -2,8 +2,19 @@
 -- 💣 CLEANUP (REVERSE DEPENDENCY ORDER)
 -- ============================================================= --
 
--- Level 4: Disconnected tables
+-- Level 6: Most dependent tables
+DROP TABLE EVALUATIONS;
+DROP TABLE INSCRIPTIONS_SESSION;
+DROP TABLE OBTENTION_CERTIF;
+
+-- Level 5: Disconnected tables
 DROP TABLE RESULTATS_SESSION_FORMATION;
+
+-- Level 4: Associations
+DROP TABLE PREPARATION_CERTIF;
+DROP TABLE PAIEMENTS;
+DROP TABLE EMPRUNTS;
+DROP TABLE COMPOSITION_PALANQUEE;
 
 -- Level 3: Tables with FKs to Level 2 or 1
 DROP TABLE SESSION_FORMATION;
@@ -245,8 +256,130 @@ CREATE TABLE RESULTATS_SESSION_FORMATION (
     id_resultat INTEGER,
     commentaires VARCHAR2(500),
 
+    numero_licence_membre INTEGER NOT NULL,
+    id_session INTEGER NOT NULL,
+
     CONSTRAINT PK_RESULTATS_SESS_FORM
-        PRIMARY KEY (id_resultat)
+        PRIMARY KEY (id_resultat),
+
+    CONSTRAINT FK_RESULTATS_SESSIONS
+        FOREIGN KEY (id_session) REFERENCES SESSION_FORMATION(id_session),
+    CONSTRAINT FK_RESULTATS_MEMBRES
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence)
+);
+
+-- ============================================================= --
+-- 🏗️ SCHEMA SETUP (BIS)
+-- ============================================================= --
+
+CREATE TABLE COMPOSITION_PALANQUEE (
+    id_palanquee INTEGER,
+    numero_licence_membre INTEGER,
+
+    CONSTRAINT PK_COMPOSITION_PALANQUEE
+        PRIMARY KEY (id_palanquee, numero_licence_membre),
+
+    CONSTRAINT FK_COMP_PAL_PALANQUEE
+        FOREIGN KEY (id_palanquee) REFERENCES PALANQUEES(id_palanquee),
+    CONSTRAINT FK_COMP_PAL_MEMBRE
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence)
+);
+
+CREATE TABLE EMPRUNTS (
+    numero_licence_membre INTEGER,
+    numero_inventaire INTEGER,
+    date_debut DATE,
+    date_fin DATE,
+
+    CONSTRAINT PK_EMPRUNTS
+        PRIMARY KEY (numero_licence_membre, numero_inventaire, date_debut),
+
+    CONSTRAINT FK_EMPRUNTS_MEMBRE
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence),
+    CONSTRAINT FK_EMPRUNTS_MATERIEL
+        FOREIGN KEY (numero_inventaire) REFERENCES MATERIEL(numero_inventaire),
+
+    CONSTRAINT CK_EMPRUNTS_DATES CHECK (date_fin >= date_debut)
+);
+
+CREATE TABLE PAIEMENTS (
+    id_paiement INTEGER,
+    numero_licence_membre INTEGER NOT NULL,
+    id_regle INTEGER NOT NULL,
+    date_frais DATE NOT NULL,
+    montant_euros NUMBER(10, 2) NOT NULL,
+    est_paye NUMBER(1) DEFAULT 0 NOT NULL,
+
+    CONSTRAINT PK_PAIEMENTS
+        PRIMARY KEY (id_paiement),
+
+    CONSTRAINT FK_PAIEMENTS_MEMBRES
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence),
+    CONSTRAINT FK_PAIEMENTS_REGLES_TARIF
+        FOREIGN KEY (id_regle) REFERENCES REGLES_TARIFICATIONS(id_regle),
+
+    CONSTRAINT CK_PAIEMENTS_EST_PAYE
+        CHECK (est_paye IN (0, 1)),
+    CONSTRAINT CK_PAIEMENTS_MONTANT_POSITIF
+        CHECK (montant_euros >= 0)
+);
+
+CREATE TABLE PREPARATION_CERTIF (
+    numero_licence_membre INTEGER,
+    code_certification VARCHAR2(10),
+    date_debut_formation DATE NOT NULL,
+
+    CONSTRAINT PK_PREPARATION_CERTIF
+        PRIMARY KEY (numero_licence_membre, code_certification),
+
+    CONSTRAINT FK_PREPARATION_MEMBRES
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence),
+    CONSTRAINT FK_PREPARATION_CERTIFICATIONS
+        FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS(code_certification)
+);
+
+CREATE TABLE OBTENTION_CERTIF (
+    numero_licence_membre INTEGER,
+    code_certification VARCHAR2(10),
+    date_obtention DATE,
+
+    CONSTRAINT PK_OBTENTION_CERTIF
+        PRIMARY KEY (numero_licence_membre, code_certification),
+
+    CONSTRAINT FK_OBTENTIONS_MEMBRES
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES (numero_licence),
+    CONSTRAINT FK_OBTENTIONS_CERTIFICATIONS
+        FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS (code_certification)
+);
+
+CREATE TABLE INSCRIPTIONS_SESSION (
+    id_session INTEGER,
+    numero_licence_membre INTEGER,
+
+    CONSTRAINT PK_INSCRIPTIONS
+        PRIMARY KEY (id_session, numero_licence_membre),
+
+    CONSTRAINT FK_INSCRIPTIONS_SESSIONS
+        FOREIGN KEY (id_session) REFERENCES SESSION_FORMATION(id_session),
+    CONSTRAINT FK_INSCRIPTIONS_MEMBRES
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence)
+);
+
+CREATE TABLE EVALUATIONS (
+    id_resultat INTEGER,
+    id_competence INTEGER,
+    statut_competence VARCHAR2(50) NOT NULL,
+
+    CONSTRAINT PK_EVALUATIONS
+        PRIMARY KEY (id_resultat, id_competence),
+
+    CONSTRAINT FK_EVAL_RESULTAT
+        FOREIGN KEY (id_resultat) REFERENCES RESULTATS_SESSION_FORMATION(id_resultat),
+    CONSTRAINT FK_EVAL_COMPETENCE
+        FOREIGN KEY (id_competence) REFERENCES COMPETENCES(id_competence),
+
+    CONSTRAINT CK_EVAL_STATUT
+        CHECK (statut_competence IN ('acquis', 'en_cours', 'non_acquis'))
 );
 
 -- ============================================================= --
