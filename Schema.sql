@@ -2,8 +2,17 @@
 -- 💣 CLEANUP (REVERSE DEPENDENCY ORDER)
 -- ============================================================= --
 
--- Level 4: Disconnected tables
+-- Level 6: Most dependent tables
+DROP TABLE EVALUATIONS;
+DROP TABLE INSCRIPTIONS_SESSION;
+DROP TABLE OBTENTION_CERTIF;
 DROP TABLE RESULTATS_SESSION_FORMATION;
+
+-- Level 4: Associations
+DROP TABLE PREPARATION_CERTIF;
+DROP TABLE PAIEMENTS;
+DROP TABLE EMPRUNTS;
+DROP TABLE COMPOSITION_PALANQUEE;
 
 -- Level 3: Tables with FKs to Level 2 or 1
 DROP TABLE SESSION_FORMATION;
@@ -48,11 +57,11 @@ CREATE TABLE MEMBRES (
 
 CREATE TABLE REGLES_TARIFICATIONS (
     id_regle INTEGER,
-    type_frais VARCHAR(20) NOT NULL,
+    type_frais VARCHAR2(20) NOT NULL,
     categorie_age VARCHAR2(20) NOT NULL,
     est_etudiant NUMBER(1) DEFAULT 0 NOT NULL,
     est_aidant_accompagnant NUMBER(1) DEFAULT 0 NOT NULL,
-    type_accueil VARCHAR(20) NOT NULL,
+    type_accueil VARCHAR2(20) NOT NULL,
     montant_euros NUMBER(10, 2) NOT NULL,
 
     CONSTRAINT PK_REGLES_TARIFICATIONS
@@ -111,6 +120,20 @@ CREATE TABLE BATEAUX (
 
     CONSTRAINT PK_BATEAUX
         PRIMARY KEY (id_bateau)
+);
+
+CREATE TABLE CERTIFICATIONS (
+    code_certification VARCHAR2(10),
+    type_certification VARCHAR2(20) NOT NULL,
+    profondeur_max_autonome INTEGER NOT NULL,
+    profondeur_max_plongee INTEGER NOT NULL,
+    profondeur_max_encadrement INTEGER NOT NULL,
+
+    CONSTRAINT PK_CERTIFICATIONS
+        PRIMARY KEY (code_certification),
+
+    CONSTRAINT CK_CERTIF_TYPE
+        CHECK (type_certification IN ('plongee', 'encadrement'))
 );
 
 CREATE TABLE SORTIES_PLONGEE (
@@ -174,20 +197,6 @@ CREATE TABLE PALANQUEES (
         )
 );
 
-CREATE TABLE CERTIFICATIONS (
-    code_certification VARCHAR2(10),
-    type_certification VARCHAR2(20) NOT NULL,
-    profondeur_max_autonome INTEGER NOT NULL,
-    profondeur_max_plongee INTEGER NOT NULL,
-    profondeur_max_encadrement INTEGER NOT NULL,
-
-    CONSTRAINT PK_CERTIFICATIONS
-        PRIMARY KEY (code_certification),
-
-    CONSTRAINT CK_CERTIF_TYPE
-        CHECK (type_certification IN ('plongee', 'encadrement'))
-);
-
 CREATE TABLE CATEGORIES_COMPETENCES (
     id_categorie INTEGER,
     nom_categorie VARCHAR2(100) NOT NULL,
@@ -203,7 +212,7 @@ CREATE TABLE CATEGORIES_COMPETENCES (
 
 CREATE TABLE COMPETENCES (
     id_competence INTEGER,
-    nom_competence VARCHAR(100) NOT NULL,
+    nom_competence VARCHAR2(100) NOT NULL,
     est_obligatoire NUMBER(1) DEFAULT 0 NOT NULL,
 
     id_categorie INTEGER NOT NULL,
@@ -245,14 +254,137 @@ CREATE TABLE RESULTATS_SESSION_FORMATION (
     id_resultat INTEGER,
     commentaires VARCHAR2(500),
 
+    numero_licence_membre INTEGER NOT NULL,
+    id_session INTEGER NOT NULL,
+
     CONSTRAINT PK_RESULTATS_SESS_FORM
-        PRIMARY KEY (id_resultat)
+        PRIMARY KEY (id_resultat),
+
+    CONSTRAINT FK_RESULTATS_SESSIONS
+        FOREIGN KEY (id_session) REFERENCES SESSION_FORMATION(id_session),
+    CONSTRAINT FK_RESULTATS_MEMBRES
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence)
+);
+
+-- ============================================================= --
+-- 🏗️ SCHEMA SETUP (BIS)
+-- ============================================================= --
+
+CREATE TABLE COMPOSITION_PALANQUEE (
+    id_palanquee INTEGER,
+    numero_licence_membre INTEGER,
+
+    CONSTRAINT PK_COMPOSITION_PALANQUEE
+        PRIMARY KEY (id_palanquee, numero_licence_membre),
+
+    CONSTRAINT FK_COMP_PAL_PALANQUEE
+        FOREIGN KEY (id_palanquee) REFERENCES PALANQUEES(id_palanquee),
+    CONSTRAINT FK_COMP_PAL_MEMBRE
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence)
+);
+
+CREATE TABLE EMPRUNTS (
+    numero_licence_membre INTEGER,
+    numero_inventaire INTEGER,
+    date_debut DATE,
+    date_fin DATE,
+
+    CONSTRAINT PK_EMPRUNTS
+        PRIMARY KEY (numero_licence_membre, numero_inventaire, date_debut),
+
+    CONSTRAINT FK_EMPRUNTS_MEMBRE
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence),
+    CONSTRAINT FK_EMPRUNTS_MATERIEL
+        FOREIGN KEY (numero_inventaire) REFERENCES MATERIEL(numero_inventaire),
+
+    CONSTRAINT CK_EMPRUNTS_DATES CHECK (date_fin >= date_debut)
+);
+
+CREATE TABLE PAIEMENTS (
+    id_paiement INTEGER,
+    numero_licence_membre INTEGER NOT NULL,
+    id_regle INTEGER NOT NULL,
+    date_frais DATE NOT NULL,
+    montant_euros NUMBER(10, 2) NOT NULL,
+    est_paye NUMBER(1) DEFAULT 0 NOT NULL,
+
+    CONSTRAINT PK_PAIEMENTS
+        PRIMARY KEY (id_paiement),
+
+    CONSTRAINT FK_PAIEMENTS_MEMBRES
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence),
+    CONSTRAINT FK_PAIEMENTS_REGLES_TARIF
+        FOREIGN KEY (id_regle) REFERENCES REGLES_TARIFICATIONS(id_regle),
+
+    CONSTRAINT CK_PAIEMENTS_EST_PAYE
+        CHECK (est_paye IN (0, 1)),
+    CONSTRAINT CK_PAIEMENTS_MONTANT_POSITIF
+        CHECK (montant_euros >= 0)
+);
+
+CREATE TABLE PREPARATION_CERTIF (
+    numero_licence_membre INTEGER,
+    code_certification VARCHAR2(10),
+    date_debut_formation DATE NOT NULL,
+
+    CONSTRAINT PK_PREPARATION_CERTIF
+        PRIMARY KEY (numero_licence_membre, code_certification),
+
+    CONSTRAINT FK_PREPARATION_MEMBRES
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence),
+    CONSTRAINT FK_PREPARATION_CERTIFICATIONS
+        FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS(code_certification)
+);
+
+CREATE TABLE OBTENTION_CERTIF (
+    numero_licence_membre INTEGER,
+    code_certification VARCHAR2(10),
+    date_obtention DATE,
+
+    CONSTRAINT PK_OBTENTION_CERTIF
+        PRIMARY KEY (numero_licence_membre, code_certification),
+
+    CONSTRAINT FK_OBTENTIONS_MEMBRES
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES (numero_licence),
+    CONSTRAINT FK_OBTENTIONS_CERTIFICATIONS
+        FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS (code_certification)
+);
+
+CREATE TABLE INSCRIPTIONS_SESSION (
+    id_session INTEGER,
+    numero_licence_membre INTEGER,
+
+    CONSTRAINT PK_INSCRIPTIONS
+        PRIMARY KEY (id_session, numero_licence_membre),
+
+    CONSTRAINT FK_INSCRIPTIONS_SESSIONS
+        FOREIGN KEY (id_session) REFERENCES SESSION_FORMATION(id_session),
+    CONSTRAINT FK_INSCRIPTIONS_MEMBRES
+        FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence)
+);
+
+CREATE TABLE EVALUATIONS (
+    id_resultat INTEGER,
+    id_competence INTEGER,
+    statut_competence VARCHAR2(50) NOT NULL,
+
+    CONSTRAINT PK_EVALUATIONS
+        PRIMARY KEY (id_resultat, id_competence),
+
+    CONSTRAINT FK_EVAL_RESULTAT
+        FOREIGN KEY (id_resultat) REFERENCES RESULTATS_SESSION_FORMATION(id_resultat),
+    CONSTRAINT FK_EVAL_COMPETENCE
+        FOREIGN KEY (id_competence) REFERENCES COMPETENCES(id_competence),
+
+    CONSTRAINT CK_EVAL_STATUT
+        CHECK (statut_competence IN ('acquis', 'en_cours', 'non_acquis'))
 );
 
 -- ============================================================= --
 -- ⚡ PERFORMANCE INDEXES
 -- ============================================================= --
 
+-- 🌊 Dive Operations (Sorties & Palanquées)
 CREATE INDEX IDX_SORTIES_SITE ON SORTIES_PLONGEE(id_site);
 CREATE INDEX IDX_SORTIES_BATEAU ON SORTIES_PLONGEE(id_bateau);
 CREATE INDEX IDX_SORTIES_DIR ON SORTIES_PLONGEE(numero_licence_directeur);
@@ -262,6 +394,9 @@ CREATE INDEX IDX_SORTIES_SEC ON SORTIES_PLONGEE(numero_licence_securite);
 CREATE INDEX IDX_PALANQUEES_SORTIE ON PALANQUEES(id_sortie);
 CREATE INDEX IDX_PALANQ_ENCADRANT ON PALANQUEES(numero_licence_encadrant);
 
+CREATE INDEX IDX_COMP_PAL_MEMBRE ON COMPOSITION_PALANQUEE(numero_licence_membre);
+
+-- 🎓 Training & Certifications
 CREATE INDEX IDX_CAT_COMP_CERTIF ON CATEGORIES_COMPETENCES(code_certification);
 
 CREATE INDEX IDX_COMP_CATEGORIE ON COMPETENCES(id_categorie);
@@ -270,3 +405,22 @@ CREATE INDEX IDX_COMP_PARENT ON COMPETENCES(id_competence_parent);
 CREATE INDEX IDX_SESS_FORM_PALANQUEE ON SESSION_FORMATION(id_palanquee);
 CREATE INDEX IDX_SESS_FORM_CERTIF ON SESSION_FORMATION(code_certification);
 CREATE INDEX IDX_SESS_FORM_INSTR ON SESSION_FORMATION(numero_licence_instructeur);
+
+CREATE INDEX IDX_RESULTATS_MEMBRE ON RESULTATS_SESSION_FORMATION(numero_licence_membre);
+CREATE INDEX IDX_RESULTATS_SESSION ON RESULTATS_SESSION_FORMATION(id_session);
+
+CREATE INDEX IDX_INSCRIPTIONS_MEMBRE ON INSCRIPTIONS_SESSION(numero_licence_membre);
+
+CREATE INDEX IDX_EVALUATIONS_COMPETENCE ON EVALUATIONS(id_competence);
+
+CREATE INDEX IDX_PREP_CERTIF_CODE ON PREPARATION_CERTIF(code_certification);
+CREATE INDEX IDX_OBTENTION_CERTIF_CODE ON OBTENTION_CERTIF(code_certification);
+
+-- 🛠️ Equipment Management
+CREATE INDEX IDX_EMPRUNTS_MATERIEL ON EMPRUNTS(numero_inventaire);
+CREATE INDEX IDX_EMPRUNTS_DATES ON EMPRUNTS(date_debut, date_fin);
+
+-- 💰 Financial Management
+CREATE INDEX IDX_PAIEMENTS_MEMBRE ON PAIEMENTS(numero_licence_membre);
+CREATE INDEX IDX_PAIEMENTS_REGLE ON PAIEMENTS(id_regle);
+CREATE INDEX IDX_PAIEMENTS_EST_PAYE ON PAIEMENTS(est_paye);
