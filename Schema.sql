@@ -35,6 +35,7 @@ DROP TABLE REGLES_TARIFICATIONS;
 -- 🏗️ SCHEMA SETUP
 -- ============================================================= --
 
+-- Crée la table des membres du club de plongée
 CREATE TABLE MEMBRES (
     numero_licence INTEGER,
     nom VARCHAR2(100) NOT NULL,
@@ -55,6 +56,7 @@ CREATE TABLE MEMBRES (
         CHECK (groupe_sanguin IN ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'))
 );
 
+-- Crée la table des règles de tarification (licences, cotisations, formations)
 CREATE TABLE REGLES_TARIFICATIONS (
     id_regle INTEGER,
     type_frais VARCHAR2(20) NOT NULL,
@@ -79,6 +81,7 @@ CREATE TABLE REGLES_TARIFICATIONS (
         CHECK (type_accueil IN ('adherent', 'federal'))
 );
 
+-- Crée la table du matériel de plongée (combinaisons, détendeurs, gilets, etc.)
 CREATE TABLE MATERIEL (
     numero_inventaire INTEGER,
     type_materiel VARCHAR2(100) NOT NULL,
@@ -95,9 +98,11 @@ CREATE TABLE MATERIEL (
         CHECK (taille IN ('2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL'))
 );
 
+-- Crée la table des sites de plongée (lieux où se déroulent les plongées)
 CREATE TABLE SITES_PLONGEE (
     id_site INTEGER,
     nom_site VARCHAR2(100) NOT NULL,
+    ville VARCHAR2(100) NOT NULL,
     milieu VARCHAR2(20) NOT NULL,
     latitude NUMBER(10,8) NOT NULL,
     longitude NUMBER(11,8) NOT NULL,
@@ -113,6 +118,7 @@ CREATE TABLE SITES_PLONGEE (
         CHECK (milieu IN ('artificiel', 'naturel'))
 );
 
+-- Crée la table des bateaux du club
 CREATE TABLE BATEAUX (
     id_bateau INTEGER,
     nom_bateau VARCHAR2(100) NOT NULL,
@@ -122,6 +128,7 @@ CREATE TABLE BATEAUX (
         PRIMARY KEY (id_bateau)
 );
 
+-- Crée la table des certifications de plongée (Niveau 1, 2, 3, E1, E2, etc.)
 CREATE TABLE CERTIFICATIONS (
     code_certification VARCHAR2(10),
     type_certification VARCHAR2(20) NOT NULL,
@@ -136,6 +143,7 @@ CREATE TABLE CERTIFICATIONS (
         CHECK (type_certification IN ('plongee', 'encadrement'))
 );
 
+-- Crée la table des sorties de plongée (organisation d'une sortie avec bateau et équipe)
 CREATE TABLE SORTIES_PLONGEE (
     id_sortie INTEGER,
     date_heure_debut DATE NOT NULL,
@@ -169,6 +177,7 @@ CREATE TABLE SORTIES_PLONGEE (
         )
 );
 
+-- Crée la table des palanquées (groupes de plongeurs lors d'une sortie)
 CREATE TABLE PALANQUEES (
     id_palanquee INTEGER,
     type_groupe VARCHAR2(20) NOT NULL,
@@ -197,6 +206,7 @@ CREATE TABLE PALANQUEES (
         )
 );
 
+-- Crée la table des catégories de compétences pour chaque certification
 CREATE TABLE CATEGORIES_COMPETENCES (
     id_categorie INTEGER,
     nom_categorie VARCHAR2(100) NOT NULL,
@@ -210,6 +220,7 @@ CREATE TABLE CATEGORIES_COMPETENCES (
         FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS(code_certification)
 );
 
+-- Crée la table des compétences à acquérir pour une certification
 CREATE TABLE COMPETENCES (
     id_competence INTEGER,
     nom_competence VARCHAR2(100) NOT NULL,
@@ -230,6 +241,7 @@ CREATE TABLE COMPETENCES (
         CHECK (est_obligatoire IN (0, 1))
 );
 
+-- Crée la table des sessions de formation (formation pratique dans une palanquée)
 CREATE TABLE SESSION_FORMATION (
     id_session INTEGER,
     date_session DATE NOT NULL,
@@ -250,6 +262,7 @@ CREATE TABLE SESSION_FORMATION (
         FOREIGN KEY (numero_licence_instructeur) REFERENCES MEMBRES(numero_licence)
 );
 
+-- Crée la table des résultats de session de formation pour chaque membre
 CREATE TABLE RESULTATS_SESSION_FORMATION (
     id_resultat INTEGER,
     commentaires VARCHAR2(500),
@@ -270,6 +283,7 @@ CREATE TABLE RESULTATS_SESSION_FORMATION (
 -- 🏗️ SCHEMA SETUP (BIS)
 -- ============================================================= --
 
+-- Crée la table de composition des palanquées (liste des membres dans chaque palanquée)
 CREATE TABLE COMPOSITION_PALANQUEE (
     id_palanquee INTEGER,
     numero_licence_membre INTEGER,
@@ -283,6 +297,7 @@ CREATE TABLE COMPOSITION_PALANQUEE (
         FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence)
 );
 
+-- Crée la table des emprunts de matériel par les membres
 CREATE TABLE EMPRUNTS (
     numero_licence_membre INTEGER,
     numero_inventaire INTEGER,
@@ -300,6 +315,7 @@ CREATE TABLE EMPRUNTS (
     CONSTRAINT CK_EMPRUNTS_DATES CHECK (date_fin >= date_debut)
 );
 
+-- Crée la table des paiements effectués par les membres
 CREATE TABLE PAIEMENTS (
     id_paiement INTEGER,
     numero_licence_membre INTEGER NOT NULL,
@@ -322,6 +338,7 @@ CREATE TABLE PAIEMENTS (
         CHECK (montant_euros >= 0)
 );
 
+-- Crée la table de préparation aux certifications (suivi des formations en cours)
 CREATE TABLE PREPARATION_CERTIF (
     numero_licence_membre INTEGER,
     code_certification VARCHAR2(10),
@@ -336,6 +353,7 @@ CREATE TABLE PREPARATION_CERTIF (
         FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS(code_certification)
 );
 
+-- Crée la table d'obtention des certifications (certifications validées)
 CREATE TABLE OBTENTION_CERTIF (
     numero_licence_membre INTEGER,
     code_certification VARCHAR2(10),
@@ -350,6 +368,7 @@ CREATE TABLE OBTENTION_CERTIF (
         FOREIGN KEY (code_certification) REFERENCES CERTIFICATIONS (code_certification)
 );
 
+-- Crée la table des inscriptions aux sessions de formation
 CREATE TABLE INSCRIPTIONS_SESSION (
     id_session INTEGER,
     numero_licence_membre INTEGER,
@@ -363,6 +382,7 @@ CREATE TABLE INSCRIPTIONS_SESSION (
         FOREIGN KEY (numero_licence_membre) REFERENCES MEMBRES(numero_licence)
 );
 
+-- Crée la table des évaluations de compétences lors d'une session
 CREATE TABLE EVALUATIONS (
     id_resultat INTEGER,
     id_competence INTEGER,
@@ -379,48 +399,3 @@ CREATE TABLE EVALUATIONS (
     CONSTRAINT CK_EVAL_STATUT
         CHECK (statut_competence IN ('acquis', 'en_cours', 'non_acquis'))
 );
-
--- ============================================================= --
--- ⚡ PERFORMANCE INDEXES
--- ============================================================= --
-
--- 🌊 Dive Operations (Sorties & Palanquées)
-CREATE INDEX IDX_SORTIES_SITE ON SORTIES_PLONGEE(id_site);
-CREATE INDEX IDX_SORTIES_BATEAU ON SORTIES_PLONGEE(id_bateau);
-CREATE INDEX IDX_SORTIES_DIR ON SORTIES_PLONGEE(numero_licence_directeur);
-CREATE INDEX IDX_SORTIES_PILOTE ON SORTIES_PLONGEE(numero_licence_pilote);
-CREATE INDEX IDX_SORTIES_SEC ON SORTIES_PLONGEE(numero_licence_securite);
-
-CREATE INDEX IDX_PALANQUEES_SORTIE ON PALANQUEES(id_sortie);
-CREATE INDEX IDX_PALANQ_ENCADRANT ON PALANQUEES(numero_licence_encadrant);
-
-CREATE INDEX IDX_COMP_PAL_MEMBRE ON COMPOSITION_PALANQUEE(numero_licence_membre);
-
--- 🎓 Training & Certifications
-CREATE INDEX IDX_CAT_COMP_CERTIF ON CATEGORIES_COMPETENCES(code_certification);
-
-CREATE INDEX IDX_COMP_CATEGORIE ON COMPETENCES(id_categorie);
-CREATE INDEX IDX_COMP_PARENT ON COMPETENCES(id_competence_parent);
-
-CREATE INDEX IDX_SESS_FORM_PALANQUEE ON SESSION_FORMATION(id_palanquee);
-CREATE INDEX IDX_SESS_FORM_CERTIF ON SESSION_FORMATION(code_certification);
-CREATE INDEX IDX_SESS_FORM_INSTR ON SESSION_FORMATION(numero_licence_instructeur);
-
-CREATE INDEX IDX_RESULTATS_MEMBRE ON RESULTATS_SESSION_FORMATION(numero_licence_membre);
-CREATE INDEX IDX_RESULTATS_SESSION ON RESULTATS_SESSION_FORMATION(id_session);
-
-CREATE INDEX IDX_INSCRIPTIONS_MEMBRE ON INSCRIPTIONS_SESSION(numero_licence_membre);
-
-CREATE INDEX IDX_EVALUATIONS_COMPETENCE ON EVALUATIONS(id_competence);
-
-CREATE INDEX IDX_PREP_CERTIF_CODE ON PREPARATION_CERTIF(code_certification);
-CREATE INDEX IDX_OBTENTION_CERTIF_CODE ON OBTENTION_CERTIF(code_certification);
-
--- 🛠️ Equipment Management
-CREATE INDEX IDX_EMPRUNTS_MATERIEL ON EMPRUNTS(numero_inventaire);
-CREATE INDEX IDX_EMPRUNTS_DATES ON EMPRUNTS(date_debut, date_fin);
-
--- 💰 Financial Management
-CREATE INDEX IDX_PAIEMENTS_MEMBRE ON PAIEMENTS(numero_licence_membre);
-CREATE INDEX IDX_PAIEMENTS_REGLE ON PAIEMENTS(id_regle);
-CREATE INDEX IDX_PAIEMENTS_EST_PAYE ON PAIEMENTS(est_paye);
